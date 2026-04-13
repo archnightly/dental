@@ -46,7 +46,7 @@ const AppContent = () => {
   }
 
   if (!user) {
-    return <Login onNeedsSetup={() => setNeedsSetup(true)} />;
+    return <Login />;
   }
 
   return (
