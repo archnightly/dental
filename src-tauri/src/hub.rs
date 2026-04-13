@@ -87,15 +87,15 @@ struct PairRequest {
     code: String,
 }
 
-#[derive(Serialize)]
-struct PairResponse {
-    token: String,
-    success: bool,
+#[derive(Serialize, Deserialize)]
+pub struct PairResponse {
+    pub token: String,
+    pub success: bool,
 }
 
 async fn auth_middleware(
     State(state): State<HubState>,
-    req: Request,
+    req: axum::extract::Request,
     next: Next,
 ) -> Response {
     let auth_header = req.headers().get("Authorization").and_then(|h| h.to_str().ok());
