@@ -226,10 +226,26 @@ pub fn init_schema(conn: &mut Connection) -> Result<(), Box<dyn std::error::Erro
     )?;
 
     // Add columns to existing tables if they don't have them
-    let _ = conn.execute("ALTER TABLE appointments ADD COLUMN doctor_id TEXT", []);
-    let _ = conn.execute("ALTER TABLE appointments ADD COLUMN doctor_name TEXT", []);
-    let _ = conn.execute("ALTER TABLE appointments ADD COLUMN reception_fee_paid BOOLEAN DEFAULT 0", []);
-    let _ = conn.execute("ALTER TABLE appointments ADD COLUMN reception_fee_waived BOOLEAN DEFAULT 0", []);
+    {
+        let mut stmt = conn.prepare("PRAGMA table_info(appointments)")?;
+        let rows = stmt.query_map([], |row| {
+            Ok(row.get::<_, String>(1)?)
+        })?;
+        let columns: Vec<String> = rows.filter_map(|r| r.ok()).collect();
+
+        if !columns.contains(&"doctor_id".to_string()) {
+            let _ = conn.execute("ALTER TABLE appointments ADD COLUMN doctor_id TEXT", []);
+        }
+        if !columns.contains(&"doctor_name".to_string()) {
+            let _ = conn.execute("ALTER TABLE appointments ADD COLUMN doctor_name TEXT", []);
+        }
+        if !columns.contains(&"reception_fee_paid".to_string()) {
+            let _ = conn.execute("ALTER TABLE appointments ADD COLUMN reception_fee_paid BOOLEAN DEFAULT 0", []);
+        }
+        if !columns.contains(&"reception_fee_waived".to_string()) {
+            let _ = conn.execute("ALTER TABLE appointments ADD COLUMN reception_fee_waived BOOLEAN DEFAULT 0", []);
+        }
+    }
 
     // Add sync_status to existing tables if they don't have it (for existing DBs)
     let tables = vec!["users", "patients", "appointments", "treatments", "payments", "waiver_requests", "doctor_status"];

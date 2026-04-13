@@ -42,7 +42,7 @@ const WaitingRoom = () => {
     return () => {
       unlisten.then(f => f());
     };
-  }, []);
+  }, [user]);
 
   const loadData = async () => {
     try {
