@@ -46,21 +46,24 @@ const Settings = () => {
   if (isLoading) return <div>Loading settings...</div>;
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900 flex items-center">
-          <SettingsIcon className="mr-3 h-8 w-8 text-blue-600" />
-          Application Settings
-        </h1>
-        <p className="text-gray-600 mt-1">Configure clinic rules and fees</p>
+    <div className="max-w-4xl mx-auto space-y-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-gray-200 pb-4">
+        <div>
+          <h1 className="text-xl font-semibold text-gray-900 flex items-center">
+            <SettingsIcon className="mr-3 h-5 w-5 text-primary" />
+            Application Settings
+          </h1>
+          <p className="text-xs text-gray-500 mt-0.5">Configure clinic rules and fees</p>
+        </div>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Financial Settings</CardTitle>
-          <CardDescription>Manage consultation fees and payment rules</CardDescription>
+      <Card className="border border-gray-200 shadow-sm rounded-sm bg-white overflow-hidden">
+        <CardHeader className="bg-gray-50/50 border-b border-gray-200 py-3 px-4">
+          <CardTitle className="text-xs font-semibold uppercase tracking-wider text-gray-900">Financial Settings</CardTitle>
+          <CardDescription className="text-[10px] text-gray-400 font-medium uppercase tracking-tight">Manage consultation fees and payment rules</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-6">
+        <CardContent className="space-y-6 p-6">
           <div className="grid w-full max-w-sm items-center gap-1.5">
             <Label htmlFor="receptionFee">Standard Reception Fee ($)</Label>
             <Input
@@ -86,8 +89,8 @@ const Settings = () => {
       </Card>
 
       <div className="flex justify-end">
-        <Button onClick={handleSave} className="bg-blue-600 hover:bg-blue-700">
-          <Save className="mr-2 h-4 w-4" />
+        <Button onClick={handleSave} size="sm" className="bg-primary hover:bg-primary/90 text-white rounded-sm h-9 px-4 text-xs font-semibold">
+          <Save className="mr-2 h-3.5 w-3.5" />
           Save Settings
         </Button>
       </div>
