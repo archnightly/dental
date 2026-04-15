@@ -48,7 +48,10 @@ pub fn create_service(
     conn.execute(
         "INSERT INTO services (id, name, standard_fee, created_at, updated_at, sync_status) VALUES (?1, ?2, ?3, ?4, ?5, 'pending')",
         rusqlite::params![id, name, standard_fee, now, now],
-    ).map_err(|e| e.to_string())?;
+    ).map_err(|e| {
+        log::error!("Failed to create service: {}", e);
+        e.to_string()
+    })?;
 
     Ok(Service {
         id,

@@ -114,11 +114,19 @@ pub async fn start_spoke_client(app_handle: AppHandle, pairing_code: String, man
 
             if let (Some(addr), Some(token)) = (addr, token) {
                 let url = format!("ws://{}/ws", addr);
-                let request = http::Request::builder()
+                let request_res = http::Request::builder()
                     .uri(url)
                     .header("Authorization", token)
-                    .body(())
-                    .unwrap();
+                    .body(());
+
+                let request = match request_res {
+                    Ok(req) => req,
+                    Err(e) => {
+                        error!("Failed to build WebSocket request: {}", e);
+                        tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
+                        continue;
+                    }
+                };
 
                 if let Ok((mut socket, _)) = tokio_tungstenite::connect_async(request).await {
                     use futures_util::StreamExt;

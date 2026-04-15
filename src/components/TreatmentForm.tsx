@@ -16,6 +16,7 @@ import { Separator } from "@/components/ui/separator";
 import { Plus, Trash2, Pill, DollarSign, Briefcase } from "lucide-react";
 import { toast } from "sonner";
 import { dataManager, Patient, Appointment, Treatment, Medication, Service } from "@/lib/dataManager";
+import { calculateAge } from "@/lib/utils";
 
 interface TreatmentFormProps {
   treatment?: Treatment;
@@ -203,7 +204,7 @@ const TreatmentForm = ({ treatment, onSave, onCancel }: TreatmentFormProps) => {
             <SelectContent>
               {patients.map((patient) => (
                 <SelectItem key={patient.id} value={patient.id}>
-                  {patient.name} - {patient.phone}
+                  {patient.name} ({calculateAge(patient.date_of_birth)} yrs) - {patient.phone}
                 </SelectItem>
               ))}
             </SelectContent>

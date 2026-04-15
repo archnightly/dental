@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { dataManager, Patient, Appointment, Service } from "@/lib/dataManager";
+import { calculateAge } from "@/lib/utils";
 import { invoke } from "@tauri-apps/api/core";
 
 interface User {
@@ -140,7 +141,7 @@ const AppointmentForm = ({
             <SelectContent>
               {patients.map((patient) => (
                 <SelectItem key={patient.id} value={patient.id}>
-                  {patient.name}
+                  {patient.name} ({calculateAge(patient.date_of_birth)} yrs)
                 </SelectItem>
               ))}
             </SelectContent>

@@ -9,6 +9,7 @@ pub fn init_db(app_handle: &tauri::AppHandle) -> Result<(), Box<dyn std::error::
     }
     let db_path = app_dir.join("dentist.db");
     let mut conn = Connection::open(db_path)?;
+    conn.execute("PRAGMA busy_timeout = 5000", [])?;
 
     init_schema(&mut conn)?;
 
@@ -314,5 +315,6 @@ pub fn get_db_conn(app_handle: &tauri::AppHandle) -> Result<Connection, Box<dyn 
     let app_dir = app_handle.path().app_data_dir()?;
     let db_path = app_dir.join("dentist.db");
     let conn = Connection::open(db_path)?;
+    conn.execute("PRAGMA busy_timeout = 5000", [])?;
     Ok(conn)
 }
