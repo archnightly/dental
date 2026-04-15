@@ -18,6 +18,12 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import {
   Search,
   Plus,
   MoreVertical,
@@ -424,12 +430,12 @@ const Patients = () => {
         </Card>
       )}
 
-      {/* History Dialog */}
-      <Dialog open={!!viewingHistory} onOpenChange={() => setViewingHistory(null)}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Clinical History: {viewingHistory?.name}</DialogTitle>
-          </DialogHeader>
+      {/* History Sheet */}
+      <Sheet open={!!viewingHistory} onOpenChange={() => setViewingHistory(null)}>
+        <SheetContent side="right" className="sm:max-w-2xl overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle>Clinical History: {viewingHistory?.name}</SheetTitle>
+          </SheetHeader>
           <div className="space-y-6 py-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Card>
@@ -644,8 +650,8 @@ const Patients = () => {
               </div>
             </div>
           </div>
-        </DialogContent>
-      </Dialog>
+        </SheetContent>
+      </Sheet>
 
       {/* Edit Patient Dialog */}
       <Dialog
