@@ -69,7 +69,9 @@ pub fn start_as_hub(app_handle: AppHandle, state: State<'_, GlobalState>) -> Res
 
     let app_clone = app_handle.clone();
     let code_clone = code_upper.clone();
-    tokio::spawn(async move {
+
+    // FIX: Use Tauri's async runtime instead of bare tokio::spawn
+    tauri::async_runtime::spawn(async move {
         let _ = start_hub_server(app_clone, code_clone).await;
     });
 
@@ -93,9 +95,12 @@ pub fn start_as_spoke(app_handle: AppHandle, state: State<'_, GlobalState>, code
     }
 
     let app_clone = app_handle.clone();
-    tokio::spawn(async move {
+
+    // FIX: Use Tauri's async runtime instead of bare tokio::spawn
+    tauri::async_runtime::spawn(async move {
         start_spoke_client(app_clone, code, manual_addr).await;
     });
+
     Ok(())
 }
 
