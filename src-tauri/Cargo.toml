@@ -1,0 +1,43 @@
+[package]
+name = "app"
+version = "0.1.8"
+description = "A Tauri App"
+authors = ["you"]
+license = ""
+repository = ""
+edition = "2021"
+rust-version = "1.71"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+name = "app_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2.0.0-rc.13" }
+
+[dependencies]
+serde_json = "1.0"
+serde = { version = "1.0", features = ["derive"] }
+log = "0.4"
+tauri = { version = "2.0.0-rc.17" }
+tauri-plugin-log = "2.0.0-rc"
+rusqlite = { version = "0.39.0", features = ["bundled"] }
+r2d2 = "0.8.10"
+r2d2_sqlite = "0.33.0"
+bcrypt = "0.19.0"
+uuid = { version = "1.20.0", features = ["v4"] }
+chrono = { version = "0.4.44", features = ["serde"] }
+axum = { version = "0.7", features = ["ws"] }
+tokio = { version = "1", features = ["full"] }
+tower-http = { version = "0.5", features = ["cors"] }
+mdns-sd = "0.11"
+reqwest = { version = "0.12", features = ["json"] }
+local-ip-address = "0.6"
+rand = "0.8"
+tokio-tungstenite = "0.24"
+futures-util = "0.3"
+http = "1"
+tauri-plugin-updater = "2.0.0"
+tauri-plugin-dialog = "2.0.0"

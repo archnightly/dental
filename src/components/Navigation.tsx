@@ -1,7 +1,7 @@
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -16,159 +16,158 @@ import {
   Stethoscope,
   Home,
   Activity,
-  Settings,
   LogOut,
   User,
   Bell,
-  Search,
   Menu,
   Database,
   CreditCard,
-  UserCircle,
+  Settings,
+  Cloud,
+  CloudOff,
+  HelpCircle,
 } from "lucide-react";
 import { useState, useEffect } from "react";
-import { dataManager, Role } from "@/lib/dataManager";
-
-interface Appointment {
-  id: string;
-  patientId: string;
-  patientName: string;
-  date: string;
-  time: string;
-  status: "scheduled" | "completed" | "cancelled";
-  type: string;
-  notes: string;
-  duration: number;
-}
+import { invoke } from "@tauri-apps/api/core";
+import { dataManager } from "@/lib/dataManager";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Navigation = () => {
   const location = useLocation();
+  const { user, logout } = useAuth();
   const [todayAppointments, setTodayAppointments] = useState(0);
   const [notifications] = useState(3); // Mock notifications
-  const [role, setRole] = useState<Role>(dataManager.getCurrentRole());
+  const [connStatus, setConnStatus] = useState<string>("Checking...");
 
   useEffect(() => {
-    const updateAppointments = () => {
-      const appointments = dataManager.getAppointments();
-      const today = new Date().toISOString().split("T")[0];
-      const todayCount = appointments.filter(
-        (apt) => apt.date === today
-      ).length;
-      setTodayAppointments(todayCount);
+    const checkStatus = async () => {
+      try {
+        const status = await invoke<string>("get_connection_status");
+        setConnStatus(status);
+      } catch {
+        setConnStatus("Offline");
+      }
+    };
+
+    checkStatus();
+    const interval = setInterval(checkStatus, 10000);
+    return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    const updateAppointments = async () => {
+      try {
+        const appointments = await dataManager.getAppointments();
+        const today = new Date().toISOString().split("T")[0];
+        const todayCount = appointments.filter(
+          (apt) => apt.date === today
+        ).length;
+        setTodayAppointments(todayCount);
+      } catch (error) {
+        console.error("Failed to update appointments count", error);
+      }
     };
 
     updateAppointments();
-
-    const handleRoleChange = () => {
-      setRole(dataManager.getCurrentRole());
-    };
-
-    window.addEventListener("roleChanged", handleRoleChange);
-    return () => window.removeEventListener("roleChanged", handleRoleChange);
   }, []);
 
-  const switchRole = (newRole: Role) => {
-    dataManager.setCurrentRole(newRole);
-  };
-
   const allNavItems = [
-    { path: "/", label: "Dashboard", icon: Home, roles: ["RECEPTION", "DOCTOR"] },
-    { path: "/patients", label: "Patients", icon: Users, roles: ["RECEPTION", "DOCTOR"] },
+    { path: "/", label: "Dashboard", icon: Home, roles: ["ADMIN", "RECEPTION", "DOCTOR"] },
+    { path: "/patients", label: "Patients", icon: Users, roles: ["ADMIN", "RECEPTION", "DOCTOR"] },
     {
       path: "/appointments",
       label: "Appointments",
       icon: Calendar,
       badge: todayAppointments > 0 ? todayAppointments : null,
-      roles: ["RECEPTION", "DOCTOR"],
+      roles: ["ADMIN", "RECEPTION", "DOCTOR"],
     },
-    { path: "/treatments", label: "Treatments", icon: Stethoscope, roles: ["DOCTOR"] },
-    { path: "/payments", label: "Payments", icon: CreditCard, roles: ["RECEPTION"] },
-    { path: "/data-management", label: "Data", icon: Database, roles: ["RECEPTION"] },
+    { path: "/treatments", label: "Treatments", icon: Stethoscope, roles: ["ADMIN", "DOCTOR"] },
+    { path: "/payments", label: "Payments", icon: CreditCard, roles: ["ADMIN", "RECEPTION"] },
+    { path: "/waiting-room", label: "Waiting Room", icon: Users, roles: ["ADMIN", "RECEPTION", "DOCTOR"] },
+    { path: "/users", label: "Users", icon: User, roles: ["ADMIN"] },
+    { path: "/data-management", label: "Data", icon: Database, roles: ["ADMIN"] },
   ];
 
-  const navItems = allNavItems.filter((item) => item.roles.includes(role));
+  const navItems = allNavItems.filter((item) => user && item.roles.includes(user.role));
+
+  const getInitials = (name: string) => {
+    return name
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2);
+  };
 
   return (
-    <nav className="bg-white shadow-lg border-b border-gray-100 sticky top-0 z-50">
+    <nav className="bg-[#0078d4] text-white shadow-sm border-b border-[#005a9e] sticky top-0 z-50">
       <div className="container mx-auto px-4">
-        <div className="flex items-center justify-between h-16">
+        <div className="flex items-center justify-between h-12">
           {/* Logo and Brand */}
           <div className="flex items-center space-x-3">
-            <div className="p-2 bg-linear-to-br from-blue-600 to-indigo-700 rounded-xl shadow-lg">
-              <Activity className="h-6 w-6 text-white" />
+            <div className="p-1.5 bg-white/10 rounded-sm">
+              <Activity className="h-5 w-5 text-white" />
             </div>
             <div>
-              <h1 className="text-xl font-bold bg-linear-to-r from-blue-700 to-indigo-700 bg-clip-text text-transparent">
+              <h1 className="text-lg font-semibold text-white tracking-tight">
                 DentalCare
               </h1>
-              <p className="text-xs text-gray-500 -mt-1">{role === "RECEPTION" ? "Reception Workspace" : "Doctor Workspace"}</p>
             </div>
           </div>
 
           {/* Navigation Items */}
-          <div className="hidden md:flex items-center space-x-1">
+          <div className="hidden md:flex items-center space-x-1 h-full">
             {navItems.map((item) => {
               const Icon = item.icon;
               const isActive = location.pathname === item.path;
 
               return (
-                <Link key={item.path} to={item.path}>
-                  <Button
-                    variant={isActive ? "default" : "ghost"}
-                    className={`flex items-center space-x-2 relative ${
+                <Link key={item.path} to={item.path} className="h-full flex items-center">
+                  <button
+                    className={`flex items-center space-x-2 px-3 h-full text-xs font-medium transition-colors outline-hidden ${
                       isActive
-                        ? "bg-linear-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg"
-                        : "text-gray-600 hover:text-blue-600 hover:bg-blue-50"
+                        ? "bg-[#005a9e] border-b-2 border-white"
+                        : "hover:bg-white/10"
                     }`}
                   >
-                    <Icon className="h-4 w-4" />
-                    <span className="font-medium">{item.label}</span>
+                    <Icon className="h-3.5 w-3.5" />
+                    <span>{item.label}</span>
                     {item.badge && (
-                      <Badge
-                        variant="destructive"
-                        className="ml-1 h-5 w-5 p-0 flex items-center justify-center text-xs"
+                      <span
+                        className="ml-1.5 bg-red-600 text-white text-[10px] px-1.5 rounded-full min-w-[18px] h-[18px] flex items-center justify-center font-bold"
                       >
                         {item.badge}
-                      </Badge>
+                      </span>
                     )}
-                  </Button>
+                  </button>
                 </Link>
               );
             })}
           </div>
 
           {/* Right Side Actions */}
-          <div className="flex items-center space-x-3">
-            {/* Role Switcher */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" className="hidden lg:flex items-center space-x-2">
-                  <UserCircle className="h-4 w-4" />
-                  <span>{role.charAt(0) + role.slice(1).toLowerCase()}</span>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuLabel>Switch Workspace</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => switchRole("RECEPTION")}>
-                  Reception
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => switchRole("DOCTOR")}>
-                  Doctor
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+          <div className="flex items-center space-x-2">
+            {/* Connection Status */}
+            <div className="hidden lg:flex items-center px-2 py-0.5 bg-white/10 rounded-sm">
+              {connStatus === "Connected" ? (
+                <Cloud className="h-3 w-3 text-green-300 mr-2" />
+              ) : (
+                <CloudOff className="h-3 w-3 text-red-300 mr-2" />
+              )}
+              <span className="text-[10px] font-semibold uppercase tracking-wider">
+                {connStatus}
+              </span>
+            </div>
 
             {/* Notifications */}
-            <Button variant="ghost" size="sm" className="relative">
+            <Button variant="ghost" size="sm" className="relative h-8 w-8 p-0 text-white hover:bg-white/10 rounded-sm">
               <Bell className="h-4 w-4" />
               {notifications > 0 && (
-                <Badge
-                  variant="destructive"
-                  className="absolute -top-1 -right-1 h-5 w-5 p-0 flex items-center justify-center text-xs"
+                <span
+                  className="absolute top-1 right-1 bg-red-600 text-white text-[9px] px-1 rounded-full min-w-[14px] h-[14px] flex items-center justify-center font-bold"
                 >
                   {notifications}
-                </Badge>
+                </span>
               )}
             </Button>
 
@@ -177,12 +176,11 @@ const Navigation = () => {
               <DropdownMenuTrigger asChild>
                 <Button
                   variant="ghost"
-                  className="relative h-10 w-10 rounded-full"
+                  className="relative h-8 w-8 p-0 hover:bg-white/10 rounded-sm"
                 >
-                  <Avatar className="h-9 w-9">
-                    <AvatarImage src="" alt="User" />
-                    <AvatarFallback className="bg-linear-to-br from-blue-500 to-indigo-600 text-white font-semibold">
-                      {role === "DOCTOR" ? "DS" : "RA"}
+                  <Avatar className="h-7 w-7 rounded-sm">
+                    <AvatarFallback className="bg-white/20 text-white font-semibold text-xs rounded-sm">
+                      {user ? getInitials(user.full_name) : "?"}
                     </AvatarFallback>
                   </Avatar>
                 </Button>
@@ -191,28 +189,32 @@ const Navigation = () => {
                 <DropdownMenuLabel className="font-normal">
                   <div className="flex flex-col space-y-1">
                     <p className="text-sm font-medium leading-none">
-                      {role === "DOCTOR" ? "Dr. Sarah Smith" : "Reception Admin"}
+                      {user?.full_name}
                     </p>
                     <p className="text-xs leading-none text-muted-foreground">
-                      {role === "DOCTOR" ? "sarah.smith@dentalcare.com" : "reception@dentalcare.com"}
+                      @{user?.username} ({user?.role})
                     </p>
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
+                <DropdownMenuItem className="cursor-pointer" asChild>
+                  <Link to="/guide">
+                    <HelpCircle className="mr-2 h-4 w-4" />
+                    <span>Usage Guide</span>
+                  </Link>
+                </DropdownMenuItem>
                 <DropdownMenuItem className="cursor-pointer">
                   <User className="mr-2 h-4 w-4" />
                   <span>Profile</span>
                 </DropdownMenuItem>
-                <DropdownMenuItem className="cursor-pointer lg:hidden" onClick={() => switchRole(role === "RECEPTION" ? "DOCTOR" : "RECEPTION")}>
-                  <UserCircle className="mr-2 h-4 w-4" />
-                  <span>Switch to {role === "RECEPTION" ? "Doctor" : "Reception"}</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem className="cursor-pointer">
-                  <Settings className="mr-2 h-4 w-4" />
-                  <span>Settings</span>
+                <DropdownMenuItem className="cursor-pointer" asChild>
+                  <Link to="/settings">
+                    <Settings className="mr-2 h-4 w-4" />
+                    <span>Settings</span>
+                  </Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem className="cursor-pointer text-red-600">
+                <DropdownMenuItem className="cursor-pointer text-red-600" onClick={logout}>
                   <LogOut className="mr-2 h-4 w-4" />
                   <span>Log out</span>
                 </DropdownMenuItem>

@@ -11,29 +11,18 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
+import { dataManager, Patient, Appointment } from "@/lib/dataManager";
+import { invoke } from "@tauri-apps/api/core";
 
-interface Patient {
+interface User {
   id: string;
-  name: string;
-  phone: string;
-  email: string;
-}
-
-interface Appointment {
-  id: string;
-  patientId: string;
-  patientName: string;
-  date: string;
-  time: string;
-  status: "scheduled" | "completed" | "cancelled";
-  type: string;
-  notes: string;
-  duration: number;
+  full_name: string;
+  role: string;
 }
 
 interface AppointmentFormProps {
   appointment?: Appointment;
-  onSave: (appointment: Appointment) => void;
+  onSave: (appointment: Omit<Appointment, "id" | "created_at" | "updated_at">) => void;
   onCancel: () => void;
 }
 
@@ -79,107 +68,133 @@ const AppointmentForm = ({
   onCancel,
 }: AppointmentFormProps) => {
   const [patients, setPatients] = useState<Patient[]>([]);
-  const [formData, setFormData] = useState<Omit<Appointment, "id">>({
-    patientId: appointment?.patientId || "",
-    patientName: appointment?.patientName || "",
+  const [doctors, setDoctors] = useState<User[]>([]);
+  const [formData, setFormData] = useState({
+    patient_id: appointment?.patient_id || "",
+    patient_name: appointment?.patient_name || "",
+    doctor_id: appointment?.doctor_id || "",
+    doctor_name: appointment?.doctor_name || "",
     date: appointment?.date || "",
     time: appointment?.time || "",
     status: appointment?.status || "scheduled",
-    type: appointment?.type || "",
+    appointment_type: appointment?.appointment_type || "",
     notes: appointment?.notes || "",
     duration: appointment?.duration || 30,
+    reception_fee_paid: appointment?.reception_fee_paid || false,
+    reception_fee_waived: appointment?.reception_fee_waived || false,
   });
 
   useEffect(() => {
-    const storedPatients = localStorage.getItem("dentalcare_patients");
-    if (storedPatients) {
-      setPatients(JSON.parse(storedPatients));
-    }
+    const loadData = async () => {
+        const [pts, users] = await Promise.all([
+          dataManager.getPatients(),
+          invoke<User[]>("list_users")
+        ]);
+        setPatients(pts);
+        setDoctors(users.filter(u => u.role === 'DOCTOR'));
+    };
+    loadData();
   }, []);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
     if (
-      !formData.patientId ||
+      !formData.patient_id ||
       !formData.date ||
       !formData.time ||
-      !formData.type
+      !formData.appointment_type ||
+      !formData.doctor_id
     ) {
       toast.error("Please fill in all required fields");
       return;
     }
 
-    const selectedPatient = patients.find((p) => p.id === formData.patientId);
-
-    const appointmentData: Appointment = {
-      id: appointment?.id || Date.now().toString(),
-      ...formData,
-      patientName: selectedPatient?.name || formData.patientName,
-    };
-
-    onSave(appointmentData);
-    toast.success(
-      appointment
-        ? "Appointment updated successfully"
-        : "Appointment scheduled successfully"
-    );
+    onSave(formData);
   };
 
-  const handlePatientChange = (patientId: string) => {
-    const selectedPatient = patients.find((p) => p.id === patientId);
+  const handlePatientChange = (patient_id: string) => {
+    const selectedPatient = patients.find((p) => p.id === patient_id);
     setFormData((prev) => ({
       ...prev,
-      patientId,
-      patientName: selectedPatient?.name || "",
+      patient_id,
+      patient_name: selectedPatient?.name || "",
+    }));
+  };
+
+  const handleDoctorChange = (doctor_id: string) => {
+    const selectedDoctor = doctors.find((d) => d.id === doctor_id);
+    setFormData((prev) => ({
+      ...prev,
+      doctor_id,
+      doctor_name: selectedDoctor?.full_name || "",
     }));
   };
 
   const handleChange = (
-    field: keyof typeof formData,
+    field: string,
     value: string | number
   ) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="space-y-2">
-        <Label htmlFor="patient">Patient *</Label>
-        <Select value={formData.patientId} onValueChange={handlePatientChange}>
-          <SelectTrigger>
-            <SelectValue placeholder="Select a patient" />
-          </SelectTrigger>
-          <SelectContent>
-            {patients.map((patient) => (
-              <SelectItem key={patient.id} value={patient.id}>
-                {patient.name} - {patient.phone}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="space-y-1.5">
+          <Label htmlFor="patient" className="text-xs font-semibold uppercase tracking-wider text-gray-500">Patient *</Label>
+          <Select value={formData.patient_id} onValueChange={handlePatientChange}>
+            <SelectTrigger className="h-9 text-sm rounded-sm border-gray-200">
+              <SelectValue placeholder="Select a patient" />
+            </SelectTrigger>
+            <SelectContent>
+              {patients.map((patient) => (
+                <SelectItem key={patient.id} value={patient.id}>
+                  {patient.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-1.5">
+          <Label htmlFor="doctor" className="text-xs font-semibold uppercase tracking-wider text-gray-500">Doctor *</Label>
+          <Select value={formData.doctor_id} onValueChange={handleDoctorChange}>
+            <SelectTrigger className="h-9 text-sm rounded-sm border-gray-200">
+              <SelectValue placeholder="Select a doctor" />
+            </SelectTrigger>
+            <SelectContent>
+              {doctors.map((doctor) => (
+                <SelectItem key={doctor.id} value={doctor.id}>
+                  {doctor.full_name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="date">Date *</Label>
+        <div className="space-y-1.5">
+          <Label htmlFor="date" className="text-xs font-semibold uppercase tracking-wider text-gray-500">Date *</Label>
           <Input
             id="date"
             type="date"
             value={formData.date}
             onChange={(e) => handleChange("date", e.target.value)}
             min={new Date().toISOString().split("T")[0]}
+            className="h-9 text-sm rounded-sm border-gray-200"
             required
           />
         </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="time">Time *</Label>
+        <div className="space-y-1.5">
+          <Label htmlFor="time" className="text-xs font-semibold uppercase tracking-wider text-gray-500">Time *</Label>
           <Select
             value={formData.time}
             onValueChange={(value) => handleChange("time", value)}
           >
-            <SelectTrigger>
+            <SelectTrigger className="h-9 text-sm rounded-sm border-gray-200">
               <SelectValue placeholder="Select time" />
             </SelectTrigger>
             <SelectContent>
@@ -194,13 +209,13 @@ const AppointmentForm = ({
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="type">Appointment Type *</Label>
+        <div className="space-y-1.5">
+          <Label htmlFor="appointment_type" className="text-xs font-semibold uppercase tracking-wider text-gray-500">Type *</Label>
           <Select
-            value={formData.type}
-            onValueChange={(value) => handleChange("type", value)}
+            value={formData.appointment_type}
+            onValueChange={(value) => handleChange("appointment_type", value)}
           >
-            <SelectTrigger>
+            <SelectTrigger className="h-9 text-sm rounded-sm border-gray-200">
               <SelectValue placeholder="Select type" />
             </SelectTrigger>
             <SelectContent>
@@ -213,13 +228,13 @@ const AppointmentForm = ({
           </Select>
         </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="duration">Duration (minutes)</Label>
+        <div className="space-y-1.5">
+          <Label htmlFor="duration" className="text-xs font-semibold uppercase tracking-wider text-gray-500">Duration</Label>
           <Select
             value={formData.duration.toString()}
             onValueChange={(value) => handleChange("duration", parseInt(value))}
           >
-            <SelectTrigger>
+            <SelectTrigger className="h-9 text-sm rounded-sm border-gray-200">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -235,19 +250,21 @@ const AppointmentForm = ({
       </div>
 
       {appointment && (
-        <div className="space-y-2">
-          <Label htmlFor="status">Status</Label>
+        <div className="space-y-1.5">
+          <Label htmlFor="status" className="text-xs font-semibold uppercase tracking-wider text-gray-500">Status</Label>
           <Select
             value={formData.status}
-            onValueChange={(value: "scheduled" | "completed" | "cancelled") =>
+            onValueChange={(value) =>
               handleChange("status", value)
             }
           >
-            <SelectTrigger>
+            <SelectTrigger className="h-9 text-sm rounded-sm border-gray-200">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="scheduled">Scheduled</SelectItem>
+              <SelectItem value="admitted">Admitted</SelectItem>
+              <SelectItem value="in_consultation">In Consultation</SelectItem>
               <SelectItem value="completed">Completed</SelectItem>
               <SelectItem value="cancelled">Cancelled</SelectItem>
             </SelectContent>
@@ -255,26 +272,27 @@ const AppointmentForm = ({
         </div>
       )}
 
-      <div className="space-y-2">
-        <Label htmlFor="notes">Notes</Label>
+      <div className="space-y-1.5">
+        <Label htmlFor="notes" className="text-xs font-semibold uppercase tracking-wider text-gray-500">Notes</Label>
         <Textarea
           id="notes"
           value={formData.notes}
           onChange={(e) => handleChange("notes", e.target.value)}
           placeholder="Additional notes or special instructions..."
-          rows={3}
+          rows={2}
+          className="text-sm rounded-sm border-gray-200"
         />
       </div>
 
-      <div className="flex space-x-3 pt-4">
-        <Button type="submit" className="flex-1 bg-blue-600 hover:bg-blue-700">
+      <div className="flex space-x-3 pt-2">
+        <Button type="submit" className="flex-1 bg-primary hover:bg-primary/90 text-white rounded-sm h-9 text-sm font-semibold">
           {appointment ? "Update Appointment" : "Schedule Appointment"}
         </Button>
         <Button
           type="button"
           variant="outline"
           onClick={onCancel}
-          className="flex-1"
+          className="flex-1 rounded-sm h-9 text-sm font-semibold border-gray-200"
         >
           Cancel
         </Button>
