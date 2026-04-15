@@ -105,37 +105,36 @@ pub async fn start_hub_server(app_handle: AppHandle, code: String) -> Result<(),
 }
 
 async fn start_mdns_discovery(port: u16) -> Result<ServiceDaemon, Box<dyn std::error::Error + Send + Sync>> {
-    // Try to get local IP, but don't panic if it fails
-    let my_ip = match local_ip() {
-        Ok(ip) => ip,
-        Err(e) => {
-            // Fallback: try to find any non-loopback IPv4
-            warn!("Could not determine default local IP: {}. Trying fallback...", e);
-            let ips = crate::commands::network::get_local_ips();
-            if let Some(ip_str) = ips.first() {
-                ip_str.parse()?
-            } else {
-                return Err("No local IP addresses found for mDNS".into());
-            }
-        }
-    };
-
     let mdns = ServiceDaemon::new()?;
     let service_type = "_dentist-hub._tcp.local.";
-    let instance_name = "dentist_hub";
-    let host_name = format!("{}.local.", instance_name);
     let properties: HashMap<String, String> = HashMap::new();
-    let service_info = ServiceInfo::new(
-        service_type,
-        instance_name,
-        &host_name,
-        my_ip.to_string(),
-        port,
-        properties,
-    )?.enable_addr_auto();
 
-    mdns.register(service_info)?;
-    info!("Registered mDNS service for IP: {}", my_ip);
+    let ips = crate::commands::network::get_local_ips();
+    if ips.is_empty() {
+        return Err("No local IP addresses found for mDNS".into());
+    }
+
+    for (i, ip_str) in ips.iter().enumerate() {
+        let instance_name = if i == 0 {
+            "dentist_hub".to_string()
+        } else {
+            format!("dentist_hub_{}", i)
+        };
+        let host_name = format!("{}.local.", instance_name);
+
+        let service_info = ServiceInfo::new(
+            service_type,
+            &instance_name,
+            &host_name,
+            ip_str.clone(),
+            port,
+            properties.clone(),
+        )?.enable_addr_auto();
+
+        mdns.register(service_info)?;
+        info!("Registered mDNS service for IP: {} as {}", ip_str, instance_name);
+    }
+
     Ok(mdns)
 }
 
@@ -196,7 +195,8 @@ async fn pair_handler(
                 return (axum::http::StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response();
             }
 
-            println!("Successful pairing with code: {}. Generated token: {}", code, token);
+            info!("Successful pairing with code: {}. Generated token: {}", code, token);
+            let _ = state.app_handle.emit("sync-event", serde_json::json!({ "type": "spoke_connected" }));
             return (axum::http::StatusCode::OK, Json(PairResponse {
                 token,
                 success: true,

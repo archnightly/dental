@@ -49,6 +49,13 @@ pub fn list_patients(app_handle: AppHandle) -> Result<Vec<Patient>, String> {
     Ok(patients)
 }
 
+fn empty_to_none(s: Option<String>) -> Option<String> {
+    match s {
+        Some(val) if val.trim().is_empty() => None,
+        _ => s,
+    }
+}
+
 #[command]
 pub fn create_patient(
     app_handle: AppHandle,
@@ -65,6 +72,15 @@ pub fn create_patient(
     let conn = get_db_conn(&app_handle).map_err(|e| e.to_string())?;
     let id = Uuid::new_v4().to_string();
     let now = Utc::now().to_rfc3339();
+
+    let phone = empty_to_none(phone);
+    let email = empty_to_none(email);
+    let date_of_birth = empty_to_none(date_of_birth);
+    let address = empty_to_none(address);
+    let medical_history = empty_to_none(medical_history);
+    let allergies = empty_to_none(allergies);
+    let emergency_contact = empty_to_none(emergency_contact);
+    let emergency_phone = empty_to_none(emergency_phone);
 
     conn.execute(
         "INSERT INTO patients (id, name, phone, email, date_of_birth, address, medical_history, allergies, emergency_contact, emergency_phone, created_at, updated_at, sync_status) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, 'pending')",
@@ -118,6 +134,15 @@ pub fn update_patient(
 ) -> Result<(), String> {
     let conn = get_db_conn(&app_handle).map_err(|e| e.to_string())?;
     let now = Utc::now().to_rfc3339();
+
+    let phone = empty_to_none(phone);
+    let email = empty_to_none(email);
+    let date_of_birth = empty_to_none(date_of_birth);
+    let address = empty_to_none(address);
+    let medical_history = empty_to_none(medical_history);
+    let allergies = empty_to_none(allergies);
+    let emergency_contact = empty_to_none(emergency_contact);
+    let emergency_phone = empty_to_none(emergency_phone);
 
     conn.execute(
         "UPDATE patients SET name = ?1, phone = ?2, email = ?3, date_of_birth = ?4, address = ?5, medical_history = ?6, allergies = ?7, emergency_contact = ?8, emergency_phone = ?9, updated_at = ?10, sync_status = 'pending' WHERE id = ?11",

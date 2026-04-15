@@ -9,6 +9,7 @@ import { Save, Settings as SettingsIcon, Server, Laptop, RefreshCw, Copy, Check,
 import { useAuth } from "@/contexts/AuthContext";
 import { checkForUpdates } from "@/lib/updater";
 import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
 
 interface NetworkInfo {
   mode: string;
@@ -44,6 +45,20 @@ const Settings = () => {
     if (user?.role === 'ADMIN') {
       loadServices();
     }
+
+    let unlisten: (() => void) | undefined;
+    const setupListener = async () => {
+      unlisten = await listen("sync-event", (event: { payload: { type: string } }) => {
+        if (event.payload?.type === "spoke_connected") {
+          toast.success("A new device has connected to the Hub!");
+        }
+      });
+    };
+    setupListener();
+
+    return () => {
+      if (unlisten) unlisten();
+    };
   }, []);
 
   const loadServices = async () => {
