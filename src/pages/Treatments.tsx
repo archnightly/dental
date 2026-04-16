@@ -84,7 +84,6 @@ const Treatments = () => {
       // Since there's no updateTreatment in dataManager, we'll implement it or use a delete/add approach
       // For now, let's assume we can add it to dataManager
       await dataManager.updateTreatment(editingTreatment.id, treatmentData);
-      await loadAppointments(); // Re-use the existing logic if we had it
       setEditingTreatment(null);
       toast.success("Treatment updated successfully");
       loadTreatments();
