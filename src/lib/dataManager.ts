@@ -108,7 +108,7 @@ export interface Treatment {
   id: string;
   patient_id: string;
   patient_name: string;
-  appointment_id: string;
+  appointment_id?: string;
   date: string;
   diagnosis: string;
   treatment: string;
@@ -300,7 +300,7 @@ class DataManager {
     return await invoke<Treatment>("create_treatment", {
       patientId: treatment.patient_id,
       patientName: treatment.patient_name,
-      appointmentId: treatment.appointment_id,
+      appointmentId: treatment.appointment_id || undefined,
       date: treatment.date,
       diagnosis: treatment.diagnosis,
       treatmentDesc: treatment.treatment,
@@ -319,7 +319,7 @@ class DataManager {
       id,
       patientId: treatment.patient_id,
       patientName: treatment.patient_name,
-      appointmentId: treatment.appointment_id,
+      appointmentId: treatment.appointment_id || undefined,
       date: treatment.date,
       diagnosis: treatment.diagnosis,
       treatmentDesc: treatment.treatment,

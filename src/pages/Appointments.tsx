@@ -127,6 +127,7 @@ const Appointments = () => {
       toast.success("Treatment recorded and appointment completed");
     } catch {
       toast.error("Failed to record treatment");
+      throw new Error("Failed to record treatment");
     }
   };
 

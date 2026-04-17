@@ -80,6 +80,7 @@ const Treatments = () => {
       toast.success("Treatment recorded successfully");
     } catch {
       toast.error("Failed to record treatment");
+      throw new Error("Failed to record treatment");
     }
   };
 
@@ -88,14 +89,13 @@ const Treatments = () => {
   ) => {
     if (!editingTreatment) return;
     try {
-      // Since there's no updateTreatment in dataManager, we'll implement it or use a delete/add approach
-      // For now, let's assume we can add it to dataManager
       await dataManager.updateTreatment(editingTreatment.id, treatmentData);
       setEditingTreatment(null);
       toast.success("Treatment updated successfully");
       loadTreatments();
     } catch {
       toast.error("Failed to update treatment");
+      throw new Error("Failed to update treatment");
     }
   };
 

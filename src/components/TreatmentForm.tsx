@@ -90,7 +90,12 @@ const TreatmentForm = ({ treatment, onSave, onCancel }: TreatmentFormProps) => {
     }
 
     try {
-      await onSave(formData);
+      const submissionData = {
+        ...formData,
+        appointment_id: formData.appointment_id || undefined
+      };
+
+      await onSave(submissionData);
 
       // Create a pending payment if there's a cost
       if (formData.cost > 0) {
