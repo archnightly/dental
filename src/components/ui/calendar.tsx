@@ -2,10 +2,11 @@
 
 import * as React from "react"
 import { ChevronLeft, ChevronRight } from "lucide-react"
-import { DayPicker } from "react-day-picker"
+import { DayPicker, type DropdownOption, type DropdownProps, type MonthCaptionProps } from "react-day-picker"
+import { format } from "date-fns"
 
 import { cn } from "@/lib/utils"
-import { buttonVariants } from "@/components/ui/button"
+import { buttonVariants, Button } from "@/components/ui/button"
 
 export type CalendarProps = React.ComponentProps<typeof DayPicker>
 
@@ -23,7 +24,6 @@ function Calendar({
         months: "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0",
         month: "space-y-4",
         month_caption: "flex justify-center pt-1 relative items-center",
-        caption_label: "text-sm font-medium",
         nav: "space-x-1 flex items-center",
         button_previous: cn(
           buttonVariants({ variant: "outline" }),
@@ -53,6 +53,10 @@ function Calendar({
         range_middle:
           "aria-selected:bg-accent aria-selected:text-accent-foreground",
         hidden: "invisible",
+        dropdowns: "flex items-center gap-1",
+        dropdown: "flex items-center",
+        dropdown_root: "relative inline-flex items-center",
+        caption_label: "hidden", // Hide default label when dropdowns are active
         ...classNames,
       }}
       components={{
@@ -61,12 +65,101 @@ function Calendar({
             return <ChevronLeft className="h-4 w-4" />
           }
           return <ChevronRight className="h-4 w-4" />
+        },
+        Dropdown: ({ value, onChange, options, ...props }: DropdownProps) => {
+          const selected = options?.find((option) => option.value === value);
+          const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+            onChange?.({ target: { value: e.target.value } } as React.ChangeEvent<HTMLSelectElement>);
+          };
+          return (
+            <div className="relative inline-flex items-center group">
+              <select
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                value={value}
+                onChange={handleChange}
+                {...props}
+              >
+                {options?.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 px-2 py-1 text-sm font-medium hover:bg-accent hover:text-accent-foreground flex items-center gap-1 focus:ring-2 focus:ring-primary"
+              >
+                {selected?.label}
+                <ChevronRight className="h-3 w-3 rotate-90 opacity-50 group-hover:opacity-100 transition-opacity" />
+              </Button>
+            </div>
+          );
+        },
+        MonthCaption: ({ calendarMonth }: MonthCaptionProps) => {
+          return (
+            <div className="flex items-center justify-center gap-1">
+              <div className="flex items-center">
+                <CalendarDropdown
+                  name="month"
+                  aria-label="Select Month"
+                  value={calendarMonth.date.getMonth()}
+                  onChange={() => {}} // react-day-picker handles this internally via the Dropdown component
+                  options={Array.from({ length: 12 }, (_, i) => ({
+                    value: i,
+                    label: format(new Date(2024, i, 1), "MMMM"),
+                    disabled: false
+                  }))}
+                />
+              </div>
+            </div>
+          );
         }
       }}
       {...props}
     />
   )
 }
+
+// Wrapper for Dropdown since we need to use it in MonthCaption
+interface CalendarDropdownProps {
+    value?: string | number;
+    onChange?: (e: React.ChangeEvent<HTMLSelectElement>) => void;
+    options?: DropdownOption[];
+    [key: string]: unknown;
+}
+
+const CalendarDropdown = ({ value, onChange, options, ...props }: CalendarDropdownProps) => {
+    const selected = options?.find((option) => option.value === value);
+    const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+      onChange?.(e);
+    };
+    return (
+      <div className="relative inline-flex items-center group">
+        <select
+          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+          value={value}
+          onChange={handleChange}
+          {...props}
+        >
+          {options?.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-8 px-2 py-1 text-sm font-medium hover:bg-accent hover:text-accent-foreground flex items-center gap-1 focus:ring-2 focus:ring-primary"
+        >
+          {selected?.label}
+          <ChevronRight className="h-3 w-3 rotate-90 opacity-50 group-hover:opacity-100 transition-opacity" />
+        </Button>
+      </div>
+    );
+};
+
 Calendar.displayName = "Calendar"
 
 export { Calendar }

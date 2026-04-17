@@ -24,6 +24,8 @@ const Login = () => {
       toast.success(`Welcome back, ${user.full_name}`);
       if (user.role === 'RECEPTION') {
         navigate("/reception");
+      } else {
+        navigate("/");
       }
     } catch (error) {
       toast.error(error as string);

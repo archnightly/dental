@@ -443,6 +443,9 @@ const PatientSheet = () => {
                                 mode="single"
                                 selected={parseISO(newSickSheet.start_date)}
                                 onSelect={(date) => handleSickSheetDateChange('start_date', date)}
+                                captionLayout="dropdown"
+                                startMonth={new Date(new Date().getFullYear() - 10, 0)}
+                                endMonth={new Date(new Date().getFullYear() + 10, 11)}
                               />
                             </PopoverContent>
                           </Popover>
@@ -461,6 +464,9 @@ const PatientSheet = () => {
                                 mode="single"
                                 selected={parseISO(newSickSheet.end_date)}
                                 onSelect={(date) => handleSickSheetDateChange('end_date', date)}
+                                captionLayout="dropdown"
+                                startMonth={new Date(new Date().getFullYear() - 10, 0)}
+                                endMonth={new Date(new Date().getFullYear() + 10, 11)}
                               />
                             </PopoverContent>
                           </Popover>
