@@ -302,6 +302,9 @@ const TreatmentForm = ({ treatment, onSave, onCancel }: TreatmentFormProps) => {
                 disabled={(date) =>
                   date > new Date()
                 }
+                captionLayout="dropdown"
+                startMonth={new Date(new Date().getFullYear() - 5, 0)}
+                endMonth={new Date()}
                 initialFocus
               />
             </PopoverContent>
@@ -548,6 +551,9 @@ const TreatmentForm = ({ treatment, onSave, onCancel }: TreatmentFormProps) => {
                 disabled={(date) =>
                   date < startOfToday()
                 }
+                captionLayout="dropdown"
+                startMonth={new Date()}
+                endMonth={new Date(new Date().getFullYear() + 2, 11)}
                 initialFocus
               />
             </PopoverContent>
