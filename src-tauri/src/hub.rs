@@ -296,6 +296,7 @@ async fn post_treatments_handler(
             "INSERT INTO treatments (id, patient_id, patient_name, appointment_id, date, diagnosis, treatment, notes, follow_up_date, cost, created_at, updated_at, sync_status)
              VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, 'synced')
              ON CONFLICT(id) DO UPDATE SET
+                appointment_id = excluded.appointment_id,
                 diagnosis = excluded.diagnosis,
                 treatment = excluded.treatment,
                 notes = excluded.notes,
