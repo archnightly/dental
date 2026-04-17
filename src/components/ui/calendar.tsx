@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import { ChevronLeft, ChevronRight } from "lucide-react"
-import { DayPicker } from "react-day-picker"
+import { DayPicker, type DropdownOption, type DropdownProps, type MonthCaptionProps } from "react-day-picker"
 import { format } from "date-fns"
 
 import { cn } from "@/lib/utils"
@@ -66,10 +66,10 @@ function Calendar({
           }
           return <ChevronRight className="h-4 w-4" />
         },
-        Dropdown: ({ value, onChange, options, ...props }) => {
+        Dropdown: ({ value, onChange, options, ...props }: DropdownProps) => {
           const selected = options?.find((option) => option.value === value);
           const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-            onChange?.({ target: { value: e.target.value } } as any);
+            onChange?.({ target: { value: e.target.value } } as React.ChangeEvent<HTMLSelectElement>);
           };
           return (
             <div className="relative inline-flex items-center group">
@@ -96,7 +96,7 @@ function Calendar({
             </div>
           );
         },
-        MonthCaption: ({ calendarMonth }) => {
+        MonthCaption: ({ calendarMonth }: MonthCaptionProps) => {
           return (
             <div className="flex items-center justify-center gap-1">
               <div className="flex items-center">
@@ -108,6 +108,7 @@ function Calendar({
                   options={Array.from({ length: 12 }, (_, i) => ({
                     value: i,
                     label: format(new Date(2024, i, 1), "MMMM"),
+                    disabled: false
                   }))}
                 />
               </div>
@@ -121,10 +122,17 @@ function Calendar({
 }
 
 // Wrapper for Dropdown since we need to use it in MonthCaption
-const CalendarDropdown = ({ value, onChange, options, ...props }: any) => {
-    const selected = options?.find((option: any) => option.value === value);
+interface CalendarDropdownProps {
+    value?: string | number;
+    onChange?: (e: React.ChangeEvent<HTMLSelectElement>) => void;
+    options?: DropdownOption[];
+    [key: string]: unknown;
+}
+
+const CalendarDropdown = ({ value, onChange, options, ...props }: CalendarDropdownProps) => {
+    const selected = options?.find((option) => option.value === value);
     const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-      onChange?.({ target: { value: e.target.value } } as any);
+      onChange?.(e);
     };
     return (
       <div className="relative inline-flex items-center group">
@@ -134,7 +142,7 @@ const CalendarDropdown = ({ value, onChange, options, ...props }: any) => {
           onChange={handleChange}
           {...props}
         >
-          {options?.map((option: any) => (
+          {options?.map((option) => (
             <option key={option.value} value={option.value}>
               {option.label}
             </option>
