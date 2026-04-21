@@ -26,7 +26,7 @@ import {
   Mail,
   AlertTriangle,
   Users,
-  History,
+  History as HistoryIcon,
   FileText,
 } from "lucide-react";
 import PatientForm from "@/components/PatientForm";
@@ -227,7 +227,7 @@ const Patients = () => {
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
                     <DropdownMenuItem onClick={() => navigate(`/patients/${patient.id}`)}>
-                      <History className="h-4 w-4 mr-2" />
+                        <HistoryIcon className="h-4 w-4 mr-2" />
                       Clinical History
                     </DropdownMenuItem>
                     {(user?.role === "DOCTOR" || user?.role === "ADMIN") && (

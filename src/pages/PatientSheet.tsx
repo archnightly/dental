@@ -22,7 +22,7 @@ import {
   Mail,
   Calendar as CalendarIcon,
   AlertTriangle,
-  History,
+  History as HistoryIcon,
   FileText,
   Stethoscope,
   Send,
@@ -575,7 +575,7 @@ const PatientSheet = () => {
           {/* Clinical History Tabs / Timeline */}
           <div className="space-y-4">
             <h2 className="text-lg font-bold text-gray-900 flex items-center px-1">
-              <History className="h-5 w-5 mr-2 text-primary" />
+              <HistoryIcon className="h-5 w-5 mr-2 text-primary" />
               Patient Clinical History
             </h2>
 
@@ -655,7 +655,7 @@ const PatientSheet = () => {
 
               {patientNotes.length === 0 && treatments.length === 0 && (
                 <div className="bg-gray-50 border border-dashed border-gray-200 rounded-sm p-12 text-center relative z-10">
-                  <History className="h-10 w-10 text-gray-300 mx-auto mb-3" />
+                  <HistoryIcon className="h-10 w-10 text-gray-300 mx-auto mb-3" />
                   <p className="text-sm text-gray-400 font-medium italic">No clinical records found for this patient.</p>
                 </div>
               )}
