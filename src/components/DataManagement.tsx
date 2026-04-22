@@ -19,7 +19,7 @@ import {
   FileText,
   AlertTriangle,
   CheckCircle2,
-  History,
+  History as HistoryIcon,
   BarChart3,
   Settings,
   RefreshCw,
@@ -377,7 +377,7 @@ const DataManagement = () => {
             <Dialog>
               <DialogTrigger asChild>
                 <Button variant="outline" size="sm" className="w-full justify-start border-gray-200 h-9 text-xs font-semibold">
-                  <History className="h-3.5 w-3.5 mr-2 text-primary" />
+                  <HistoryIcon className="h-3.5 w-3.5 mr-2 text-primary" />
                   View Backup History
                 </Button>
               </DialogTrigger>
