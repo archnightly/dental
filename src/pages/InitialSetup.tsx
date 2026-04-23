@@ -35,8 +35,8 @@ const InitialSetup = ({ onComplete }: { onComplete: () => void }) => {
       // Also start as hub by default if choosing Hub tab
       await invoke("start_as_hub");
 
-      toast.success("Initial Admin account created successfully!");
-      onComplete();
+      toast.success("Initial Admin account created! Restarting application...");
+      setTimeout(() => invoke("restart_app"), 2000);
     } catch (error) {
       toast.error(error as string);
     } finally {
@@ -70,6 +70,13 @@ const InitialSetup = ({ onComplete }: { onComplete: () => void }) => {
     e.preventDefault();
     setIsLoading(true);
     try {
+      // 1. Verify Hub availability first
+      await invoke("verify_hub_connection", {
+        code: pairingCode,
+        manualAddr: hubAddress || null
+      });
+
+      // 2. Start as spoke
       await invoke("start_as_spoke", {
         code: pairingCode,
         manualAddr: hubAddress || null
