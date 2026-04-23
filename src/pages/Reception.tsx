@@ -15,6 +15,7 @@ import {
   Activity,
   UserCheck,
   Calendar,
+  XCircle,
 } from "lucide-react";
 import {
   Dialog,
@@ -88,9 +89,15 @@ const Reception = () => {
       return unlisten;
     };
 
+    // Background polling fallback for network reliability
+    const intervalId = setInterval(() => {
+      loadData();
+    }, 30000); // 30 seconds
+
     const unlistenPromise = setupListener();
     return () => {
       unlistenPromise.then(f => f());
+      clearInterval(intervalId);
     };
   }, [loadData]);
 
@@ -146,6 +153,17 @@ const Reception = () => {
   };
 
   const handleAdmit = async (appt: Appointment) => {
+    // Check if patient is already in the active queue
+    const activeAppointment = appointments.find(a =>
+      a.patient_id === appt.patient_id &&
+      (a.status === 'admitted' || a.status === 'in_consultation' || a.status === 'awaiting_checkout')
+    );
+
+    if (activeAppointment) {
+      toast.error(`${appt.patient_name} is already in the queue or in consultation.`);
+      return;
+    }
+
     if (requirePayment && !appt.reception_fee_paid && !appt.reception_fee_waived) {
       toast.error("Reception fee must be paid before admission");
       return;
@@ -184,6 +202,34 @@ const Reception = () => {
     setShowCheckout(true);
   };
 
+  const handleMoveToCheckout = async (appt: Appointment) => {
+    if (!confirm(`Move ${appt.patient_name} to checkout? This will end their consultation session.`)) return;
+    try {
+      await dataManager.updateAppointment(appt.id, { status: "awaiting_checkout" });
+      if (appt.doctor_id) {
+        await dataManager.updateDoctorStatus(appt.doctor_id, null);
+      }
+      toast.success("Patient moved to checkout");
+      loadData();
+    } catch {
+      toast.error("Failed to update status");
+    }
+  };
+
+  const handleCancelVisit = async (appt: Appointment) => {
+    if (!confirm(`Are you sure you want to cancel ${appt.patient_name}'s visit? This will remove them from the queue.`)) return;
+    try {
+      await dataManager.updateAppointment(appt.id, { status: "cancelled" });
+      if (appt.doctor_id) {
+        await dataManager.updateDoctorStatus(appt.doctor_id, null);
+      }
+      toast.success("Visit cancelled");
+      loadData();
+    } catch {
+      toast.error("Failed to cancel visit");
+    }
+  };
+
   const today = new Date().toISOString().split("T")[0];
   const todayAppointments = appointments.filter(a => a.date === today);
   const scheduledToday = todayAppointments.filter(a => a.status === 'scheduled');
@@ -206,6 +252,18 @@ const Reception = () => {
 
   return (
     <div className="min-h-screen bg-[#f8fafc] flex flex-col">
+      <Button
+        variant="outline"
+        size="icon"
+        className="fixed bottom-6 right-6 h-12 w-12 rounded-full shadow-lg bg-white border-blue-100 text-[#0078d4] hover:bg-blue-50 z-50"
+        onClick={() => {
+          setIsLoading(true);
+          loadData();
+          toast.success("Data refreshed");
+        }}
+      >
+        <Activity className="h-6 w-6" />
+      </Button>
       {/* Premium Header */}
       <header className="bg-[#0078d4] text-white px-6 h-14 flex items-center justify-between shadow-md shrink-0">
         <div className="flex items-center space-x-3">
@@ -437,11 +495,27 @@ const Reception = () => {
                       {inQueue.filter(a => a.status === 'in_consultation').map(appt => (
                         <div key={appt.id} className="p-3 bg-green-50/50 border border-green-100 rounded-sm">
                           <div className="flex justify-between items-start">
-                            <div>
+                            <div className="flex-1">
                               <p className="text-sm font-bold text-gray-900">{appt.patient_name}</p>
                               <p className="text-[10px] text-green-700 font-semibold uppercase">{appt.doctor_name || 'Assigned Doctor'}</p>
                             </div>
-                            <Activity className="h-4 w-4 text-green-500" />
+                            <div className="flex flex-col gap-1">
+                              <Button
+                                size="sm"
+                                className="h-6 text-[9px] font-bold bg-[#0078d4] text-white rounded-sm"
+                                onClick={() => handleMoveToCheckout(appt)}
+                              >
+                                Move to Checkout
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-6 text-[9px] font-bold text-red-600 hover:text-red-700 hover:bg-red-50 rounded-sm"
+                                onClick={() => handleCancelVisit(appt)}
+                              >
+                                Cancel Visit
+                              </Button>
+                            </div>
                           </div>
                         </div>
                       ))}
@@ -458,17 +532,27 @@ const Reception = () => {
                       {inQueue.filter(a => a.status === 'awaiting_checkout').map(appt => (
                         <div key={appt.id} className="p-3 bg-blue-50 border border-blue-100 rounded-sm">
                           <div className="flex justify-between items-center">
-                            <div>
+                            <div className="flex-1">
                               <p className="text-sm font-bold text-gray-900">{appt.patient_name}</p>
                               <p className="text-[10px] text-blue-700 font-semibold uppercase">Ready for billing</p>
                             </div>
-                            <Button
-                              size="sm"
-                              className="h-7 text-[10px] font-bold bg-[#0078d4] text-white rounded-sm"
-                              onClick={() => handleOpenCheckout(appt)}
-                            >
-                              Checkout
-                            </Button>
+                            <div className="flex flex-col gap-1">
+                              <Button
+                                size="sm"
+                                className="h-7 text-[10px] font-bold bg-[#0078d4] text-white rounded-sm px-4"
+                                onClick={() => handleOpenCheckout(appt)}
+                              >
+                                Checkout
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-6 text-[9px] font-bold text-red-600 hover:text-red-700 hover:bg-red-50 rounded-sm"
+                                onClick={() => handleCancelVisit(appt)}
+                              >
+                                Cancel Visit
+                              </Button>
+                            </div>
                           </div>
                         </div>
                       ))}
@@ -485,11 +569,21 @@ const Reception = () => {
                       {inQueue.filter(a => a.status === 'admitted').map(appt => (
                         <div key={appt.id} className="p-3 bg-white border border-gray-100 rounded-sm shadow-[0_2px_4px_rgba(0,0,0,0.02)]">
                           <div className="flex justify-between items-center">
-                            <div>
+                            <div className="flex-1">
                               <p className="text-sm font-bold text-gray-900">{appt.patient_name}</p>
                               <p className="text-[10px] text-gray-500 font-medium">Checked in at {new Date(appt.updated_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
                             </div>
-                            <Badge variant="outline" className="text-[9px] font-bold border-orange-100 bg-orange-50 text-orange-600 px-1.5 h-5 rounded-sm">WAITING</Badge>
+                            <div className="flex items-center gap-2">
+                              <Badge variant="outline" className="text-[9px] font-bold border-orange-100 bg-orange-50 text-orange-600 px-1.5 h-5 rounded-sm">WAITING</Badge>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-7 w-7 p-0 text-red-500 hover:text-red-600 hover:bg-red-50 rounded-sm"
+                                onClick={() => handleCancelVisit(appt)}
+                              >
+                                <XCircle className="h-4 w-4" />
+                              </Button>
+                            </div>
                           </div>
                         </div>
                       ))}

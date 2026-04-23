@@ -162,7 +162,10 @@ pub fn update_appointment(
             "SELECT patient_name FROM appointments WHERE id = ?1",
             [&id],
             |row| row.get(0)
-        ).unwrap_or_else(|_| "Unknown".to_string());
+        ).unwrap_or_else(|e| {
+            log::error!("Failed to fetch patient name for admission event: {}", e);
+            "Unknown".to_string()
+        });
 
         let _ = app_handle.emit("sync-event", serde_json::json!({
             "type": "patient_admitted",
