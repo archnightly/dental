@@ -14,6 +14,7 @@ pub fn run() {
     .manage(commands::network::GlobalState {
       mode: std::sync::Mutex::new("none".to_string()),
       pairing_code: std::sync::Mutex::new(None),
+      is_connected: std::sync::Mutex::new(false),
     })
     .plugin(tauri_plugin_log::Builder::default().build())
     .plugin(tauri_plugin_updater::Builder::new().build())
@@ -53,6 +54,8 @@ pub fn run() {
       commands::network::get_connection_status,
       commands::network::get_local_ips,
       commands::network::get_network_info,
+      commands::network::verify_hub_connection,
+      commands::network::restart_app,
       commands::settings::get_setting,
       commands::settings::set_setting,
       commands::settings::list_settings,

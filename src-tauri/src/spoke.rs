@@ -10,12 +10,24 @@ use crate::hub::SyncResponse;
 use reqwest::Client;
 use log::{info, error};
 
+use tauri::Manager;
+
 pub async fn start_spoke_client(app_handle: AppHandle, pairing_code: String, manual_addr: Option<String>) {
     // hub_addresses stores a list of potential addresses to try
     let hub_addresses = Arc::new(Mutex::new(if let Some(addr) = manual_addr { vec![addr] } else { Vec::new() }));
     let current_hub_index = Arc::new(Mutex::new(0));
     let pairing_token = Arc::new(Mutex::new(None));
     let sync_notifier = Arc::new(tokio::sync::Notify::new());
+
+    // Update global state if available
+    if let Some(state) = app_handle.try_state::<crate::commands::network::GlobalState>() {
+        if let Ok(mut g_mode) = state.mode.lock() {
+            *g_mode = "spoke".to_string();
+        }
+        if let Ok(mut g_code) = state.pairing_code.lock() {
+            *g_code = Some(pairing_code.clone());
+        }
+    }
 
     let hub_addrs_clone = hub_addresses.clone();
     let notifier_mdns = sync_notifier.clone();
@@ -106,6 +118,12 @@ pub async fn start_spoke_client(app_handle: AppHandle, pairing_code: String, man
                                     *lock = Some(pair_res.token.clone());
                                     info!("Paired successfully with Hub at {}", addr);
                                     force_sync = true;
+
+                                    if let Some(state) = app_handle_sync.try_state::<crate::commands::network::GlobalState>() {
+                                        if let Ok(mut conn_lock) = state.is_connected.lock() {
+                                            *conn_lock = true;
+                                        }
+                                    }
                                 }
                             }
                         },
@@ -135,6 +153,11 @@ pub async fn start_spoke_client(app_handle: AppHandle, pairing_code: String, man
                         }
                         Err(e) => {
                             error!("Sync failed with {}: {}", addr, e);
+                            if let Some(state) = app_handle_sync.try_state::<crate::commands::network::GlobalState>() {
+                                if let Ok(mut conn_lock) = state.is_connected.lock() {
+                                    *conn_lock = false;
+                                }
+                            }
                             // If sync fails, maybe the address is stale
                             if let Ok(mut idx_lock) = current_idx_sync.lock() {
                                 *idx_lock = (idx + 1) % total;

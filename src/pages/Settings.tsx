@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { dataManager, Service, InsuranceProvider } from "@/lib/dataManager";
+import { dataManager, type Service, type InsuranceProvider } from "@/lib/dataManager";
 import { Save, Settings as SettingsIcon, Server, Laptop, RefreshCw, Copy, Check, Plus, Trash2, Stethoscope, Upload, Image as ImageIcon, ShieldCheck, FileText, Edit } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { checkForUpdates } from "@/lib/updater";
@@ -44,6 +44,11 @@ const Settings = () => {
   const [newServiceName, setNewServiceName] = useState("");
   const [newServiceFee, setNewServiceFee] = useState("");
   const [editingService, setEditingService] = useState<Service | null>(null);
+
+  const [isSpokeDialogOpen, setIsSpokeDialogOpen] = useState(false);
+  const [spokePairingCode, setSpokePairingCode] = useState("");
+  const [spokeHubAddress, setSpokeHubAddress] = useState("");
+  const [isVerifying, setIsVerifying] = useState(false);
 
   const [noteTypes, setNoteTypes] = useState<string[]>([]);
   const [newNoteType, setNewNoteType] = useState("");
@@ -155,10 +160,40 @@ const Settings = () => {
   const handleStartHub = async () => {
     try {
       await invoke<string>("start_as_hub");
-      toast.success("Hub server started successfully!");
-      loadNetworkInfo();
+      toast.success("Hub server enabled! Restarting application for changes to take effect...");
+      setTimeout(() => invoke("restart_app"), 2000);
     } catch (error) {
       toast.error(error as string);
+    }
+  };
+
+  const handleStartSpoke = async () => {
+    if (!spokePairingCode) {
+      toast.error("Pairing code is required");
+      return;
+    }
+
+    setIsVerifying(true);
+    try {
+      // 1. Verify Hub availability
+      await invoke("verify_hub_connection", {
+        code: spokePairingCode,
+        manualAddr: spokeHubAddress || null
+      });
+
+      // 2. If verified, switch mode
+      await invoke("start_as_spoke", {
+        code: spokePairingCode,
+        manualAddr: spokeHubAddress || null
+      });
+
+      toast.success("Successfully connected to Hub! Restarting application...");
+      setIsSpokeDialogOpen(false);
+      setTimeout(() => invoke("restart_app"), 2000);
+    } catch (error) {
+      toast.error(error as string);
+    } finally {
+      setIsVerifying(false);
     }
   };
 
@@ -692,8 +727,28 @@ const Settings = () => {
                   </div>
                 </div>
                 {networkInfo.mode === 'none' && (
-                  <Button onClick={handleStartHub} size="sm" className="bg-primary text-white text-[10px] h-8 px-4 font-bold uppercase tracking-wider rounded-sm">
-                    Enable Hub Mode
+                  <div className="flex gap-2">
+                    <Button onClick={() => setIsSpokeDialogOpen(true)} variant="outline" size="sm" className="text-[10px] h-8 px-4 font-bold uppercase tracking-wider rounded-sm">
+                      Enable Spoke Mode
+                    </Button>
+                    <Button onClick={handleStartHub} size="sm" className="bg-primary text-white text-[10px] h-8 px-4 font-bold uppercase tracking-wider rounded-sm">
+                      Enable Hub Mode
+                    </Button>
+                  </div>
+                )}
+                {networkInfo.mode !== 'none' && (
+                  <Button
+                    onClick={async () => {
+                      if (confirm("Switching to Standalone mode will disconnect this machine from the network. The app will restart. Proceed?")) {
+                        await dataManager.setSetting("network_mode", "none");
+                        invoke("restart_app");
+                      }
+                    }}
+                    variant="outline"
+                    size="sm"
+                    className="text-[10px] h-8 px-4 font-bold uppercase tracking-wider rounded-sm text-red-600 hover:text-red-700 hover:bg-red-50"
+                  >
+                    Disable Network Mode
                   </Button>
                 )}
               </div>
@@ -785,6 +840,53 @@ const Settings = () => {
               <div className="flex justify-end gap-3 pt-2">
                 <Button variant="outline" size="sm" onClick={() => setEditingProvider(null)}>Cancel</Button>
                 <Button size="sm" onClick={handleUpdateProvider}>Save Changes</Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Spoke Connection Dialog */}
+      {isSpokeDialogOpen && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <Card className="w-full max-w-md bg-white">
+            <CardHeader>
+              <CardTitle className="text-sm font-bold uppercase tracking-wider">Connect as Spoke</CardTitle>
+              <CardDescription className="text-[10px] font-medium uppercase">Enter the Hub details to connect</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="spokeCode" className="text-[10px] font-bold uppercase text-gray-500">Pairing Code</Label>
+                <Input
+                  id="spokeCode"
+                  value={spokePairingCode}
+                  onChange={(e) => setSpokePairingCode(e.target.value.toUpperCase())}
+                  placeholder="ABCDEF"
+                  className="h-10 text-center text-lg font-bold tracking-widest"
+                  maxLength={6}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="spokeAddr" className="text-[10px] font-bold uppercase text-gray-500">Hub Address (Optional)</Label>
+                <Input
+                  id="spokeAddr"
+                  value={spokeHubAddress}
+                  onChange={(e) => setSpokeHubAddress(e.target.value)}
+                  placeholder="192.168.1.100:8080"
+                  className="h-9 text-sm"
+                />
+                <p className="text-[10px] text-gray-400 italic">Leave empty for automatic discovery</p>
+              </div>
+              <div className="flex justify-end gap-3 pt-2">
+                <Button variant="outline" size="sm" onClick={() => setIsSpokeDialogOpen(false)} disabled={isVerifying}>Cancel</Button>
+                <Button size="sm" onClick={handleStartSpoke} disabled={isVerifying}>
+                  {isVerifying ? (
+                    <>
+                      <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                      Verifying...
+                    </>
+                  ) : "Connect"}
+                </Button>
               </div>
             </CardContent>
           </Card>
