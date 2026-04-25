@@ -17,10 +17,12 @@ pub fn create_user(
     let conn = get_db_conn(&app_handle).map_err(|e| e.to_string())?;
 
     // Verify requester is admin
-    let mut stmt = conn.prepare("SELECT role FROM users WHERE id = ?1").map_err(|e| e.to_string())?;
-    let admin_role: String = stmt.query_row([&admin_id], |row| row.get(0)).map_err(|_| "Admin not found".to_string())?;
-    if admin_role != "ADMIN" {
-        return Err("Unauthorized".to_string());
+    {
+        let mut stmt = conn.prepare("SELECT role FROM users WHERE id = ?1").map_err(|e| e.to_string())?;
+        let admin_role: String = stmt.query_row([&admin_id], |row| row.get(0)).map_err(|_| "Admin not found".to_string())?;
+        if admin_role != "ADMIN" {
+            return Err("Unauthorized".to_string());
+        }
     }
 
     let id = Uuid::new_v4().to_string();
@@ -70,10 +72,12 @@ pub fn delete_user(app_handle: AppHandle, admin_id: String, user_id: String) -> 
     let mut conn = get_db_conn(&app_handle).map_err(|e| e.to_string())?;
 
     // Verify requester is admin
-    let mut stmt = conn.prepare("SELECT role FROM users WHERE id = ?1").map_err(|e| e.to_string())?;
-    let admin_role: String = stmt.query_row([&admin_id], |row| row.get(0)).map_err(|_| "Admin not found".to_string())?;
-    if admin_role != "ADMIN" {
-        return Err("Unauthorized".to_string());
+    {
+        let mut stmt = conn.prepare("SELECT role FROM users WHERE id = ?1").map_err(|e| e.to_string())?;
+        let admin_role: String = stmt.query_row([&admin_id], |row| row.get(0)).map_err(|_| "Admin not found".to_string())?;
+        if admin_role != "ADMIN" {
+            return Err("Unauthorized".to_string());
+        }
     }
 
     if admin_id == user_id {
